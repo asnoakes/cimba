@@ -98,7 +98,7 @@ angular.module( 'Cimba', [
     $scope.allPosts = {};//aggregate list of all posts by channel uri
     $scope.posts = []; //aggregate list of all posts (flat list)
     $scope.users = {};
-    $scope.search = {}; 
+    $scope.search = {};
 
     $rootScope.userProfile = {};
 
@@ -123,7 +123,7 @@ angular.module( 'Cimba', [
         // clear sessionStorage
         $scope.clearLocalCredentials();
         $scope.userProfile = {};
-        $rootScope.userProfile = $scope.userProfile;
+        $rootScope.userProfile = {};
         $location.path('/login');
     };
 
@@ -167,7 +167,7 @@ angular.module( 'Cimba', [
         sessionStorage.removeItem($scope.appuri);
     };
 
-    $scope.$watch('loginSuccess', function(newVal, oldVal) {
+    $scope.$watch('loginSuccess', function(newVal, oldVal) {        
         if (newVal === true && $scope.userProfile.webid) {
             $scope.getInfo($scope.userProfile.webid, true, false);
         }
@@ -212,6 +212,7 @@ angular.module( 'Cimba', [
                   $scope.$apply();
                 }
             } 
+
             // get some basic info
             var name = g.any(webidRes, FOAF('name'));
             var pic = g.any(webidRes, FOAF('img'));
@@ -282,6 +283,9 @@ angular.module( 'Cimba', [
                 $scope.users[webid].name = name; //for displaying delete button in posts.tpl.html
                 $scope.users[webid].picture = pic; //resolves issue of not displaying profile picture that the above line creates
 
+                $scope.users[webid].name = name; //for displaying delete button in posts.tpl.html
+                $scope.users[webid].picture = pic; //resolves issue of not displaying profile picture that the above line creates
+
                 // find microblogging feeds/channels
                 if (!storage) {
                   $scope.loading = false; // hide spinner
@@ -334,15 +338,8 @@ angular.module( 'Cimba', [
 
         // fetch user data: SIOC:Space -> SIOC:Container -> SIOC:Post
         f.nowOrWhenFetched(uri,undefined,function(){
-
             // find all SIOC:Container
             var ws = g.statementsMatching(undefined, RDF('type'), SIOC('Space'));
-
-            console.log("g graph in getChannels;"); //debug
-            console.log(g); //debug
-            console.log("ws in getChannels"); //debug
-            console.log(ws); //debug
-
             if (ws.length > 0) {
                 // set a default Microblog workspace
                 if (mine && !$scope.users[webid].mbspace) {
@@ -367,7 +364,7 @@ angular.module( 'Cimba', [
                 var func = function() {
 
                     var chs = g.statementsMatching(undefined, RDF('type'), SIOC('Container'));
-                  
+
                     if (chs.length > 0) {                        
                         $scope.channels = [];
                         // clear list first
@@ -546,18 +543,14 @@ angular.module( 'Cimba', [
                         userpic = $scope.users[userwebid].picture;
                     }
                     else if (g.any(useraccount, SIOC('avatar'))) {
-
-                      userpic = g.any(useraccount, SIOC('avatar')).value;
-
+                        userpic = g.any(useraccount, SIOC('avatar')).value;
                     }
                     else {
 
                       userpic = 'assets/generic_photo.png';
-
                     }
 
                     // try using the name from the WebID first
-
                     if (userwebid) {
                         username = $scope.users[userwebid].name;
                     } else if (g.any(useraccount, FOAF('name'))) {
@@ -567,7 +560,8 @@ angular.module( 'Cimba', [
                     }
 
                     if (g.any(uri, SIOC('content'))) {
-                        body = g.any(uri, SIOC('content')).value;                    
+                        body = g.any(uri, SIOC('content')).value;
+                        console.log("body: "); //debug
                     } else {
                         body = '';
                     }
@@ -586,13 +580,22 @@ angular.module( 'Cimba', [
                         username : username,
                         body : body
                     };
+      
+                    //create an empty object of posts if its undefined
+                    if (!$scope.posts) {
+                        $scope.posts = {};
+                    }
+
+                    if (!$scope.allPosts[channel]) {
+                        $scope.allPosts[channel] =  [];
+                    }
                     
                     // filter post by language (only show posts in English or show all) 
                     //not implemented yet ^, currently a redundant if/else statement        
                     if ($scope.filterFlag && testIfAllEnglish(_newPost.body)) {
                         // add/overwrite post
                         $scope.allPosts[channel].push(_newPost);
-                        $scope.posts.push(_newPost);                     
+                        $scope.posts.push(_newPost);
                         $scope.$apply();
                     } else {
                         $scope.allPosts[channel].push(_newPost);
@@ -602,7 +605,6 @@ angular.module( 'Cimba', [
 
                     $scope.users[$scope.userProfile.webid].gotposts = true;
                 }
-
             } else {
                 if (isEmpty($scope.allPosts || $scope.posts)) {
                     $scope.users[$scope.userProfile.webid].gotposts = false;
@@ -612,7 +614,6 @@ angular.module( 'Cimba', [
             // hide spinner
             $scope.loading = false;
             $scope.$apply();
-
         });
     };
 
@@ -1001,18 +1002,18 @@ angular.module( 'Cimba', [
     /////-----
 })
 
-
-.run( function run ($rootScope, $location) {
-    $rootScope.userProfile = {};
+.run( function run ($rootScope, $location) {     
+    if (!$rootScope.userProfile) {
+        $rootScope.userProfile = {};    
+    }
     // register listener to watch route changes
-    $rootScope.$on( "$locationChangeStart", function(event, next, current) {
+    $rootScope.$on( "$locationChangeStart", function(event, next, current) { 
+        // event.preventDefault();
         if ( !$rootScope.userProfile.webid) {
             // no logged user, we should be going to #login
-            if ( next.templateUrl == "login/login.tpl.html" ) {
-              // already going to #login, no redirect needed
-            } else {
-              // not going to #login, we should redirect now
-              $location.path( "/login" );
+            if ( next.templateUrl != "login/login.tpl.html" ) {
+                // not going to #login, we should redirect now
+                $location.path( "/login" );
             }
         }
     });

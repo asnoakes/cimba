@@ -17,7 +17,7 @@ angular.module('Cimba.posts',[
 	});
 })
 
-.controller("PostsController", function PostsController( $scope, $http, $location, $sce ) {
+.controller("PostsController", function PostsCtrl( $scope, $http, $location, $sce ) {
 	var webid = $scope.$parent.userProfile.webid;
 	$scope.audience = {};
 	$scope.audience.icon = "fa-globe"; //default value
@@ -137,7 +137,7 @@ angular.module('Cimba.posts',[
 						$scope.allPosts = {};
 					}
 					else if (!$scope.posts) {
-						$scope.posts = {};
+						$scope.posts = [];
 					}
 					// append post to the local list
 					$scope.allPosts[uri].push(_newPost);
@@ -263,6 +263,7 @@ angular.module('Cimba.posts',[
 					// TODO: TEST THIS AGAIN!!!
 					$scope.removePost(post.uri, channeluri);
 					$scope.$apply();
+
 					// also remove the ACL file
 					var acl = parseLinkHeader(r.getResponseHeader('Link'));
 					var aclURI = acl['acl']['href'];
@@ -302,6 +303,14 @@ angular.module('Cimba.posts',[
 			}
 		}
 		if ($scope.posts && !isEmpty($scope.posts)) {
+			for (var i in $scope.posts) {
+				if (posturi && posturi == $scope.posts[i].uri) {
+					delete $scope.posts[i];
+					modified = true;
+				}
+			}
+		}
+		if ($scope.posts && !isEmpty($scope.posts)) {
 			delete $scope.posts[posturi];
 			modified = true;
 		}
@@ -322,18 +331,6 @@ angular.module('Cimba.posts',[
 			}
 		}
 	};
-
-	/*
-	// remove all posts from viewer based on the given channel URI
-	$scope.removePostsByChannel = function(ch) {
-		var modified = false;
-		if ($scope.allPosts && !isEmpty($scope.allPosts)) {
-			for (var p in $scope.allPosts[ch]) {
-				delete $scope.allPosts[ch][p];
-				modified = true;
-			}
-		}
-	};*/
 })
 
 //simple directive to display new post box
