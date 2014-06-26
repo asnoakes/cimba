@@ -94,9 +94,8 @@ angular.module( 'Cimba', [
     $scope.loginSuccess = false;
     $scope.userProfile = {};
     $scope.userProfile.picture = 'assets/generic_photo.png';
-    $scope.channels = [];
-    $scope.allPosts = {};//aggregate list of all posts by channel uri
-    $scope.posts = []; //aggregate list of all posts (flat list)
+    $scope.channels = {};
+    $scope.posts = {}; //aggregate list of all posts (flat list)
     $scope.users = {};
     $scope.search = {};
 
@@ -104,6 +103,10 @@ angular.module( 'Cimba', [
 
     $scope.login = function () {
         $location.path('/login');
+    };
+
+    $scope.hideMenu = function(){
+      $scope.showMenu = false;
     };
 
     $scope.logout = function () {
@@ -366,13 +369,16 @@ angular.module( 'Cimba', [
                     var chs = g.statementsMatching(undefined, RDF('type'), SIOC('Container'));
 
                     if (chs.length > 0) {                        
-                        $scope.channels = [];
+                        $scope.channels = {};
                         // clear list first
                         $scope.users[webid].channels = [];
           
-                        for (var ch in chs) {
+                        for (var ch in chs) {                        
                             var channel = {};                            
                             channel['uri'] = chs[ch]['subject']['value'];
+                            var safeUri = channel.uri.replace(/^https?:\/\//,'');
+                            channel['safeUri'] = safeUri;
+
                             var title = g.any(chs[ch]['subject'], DCT('title')).value;
 
                             if (title) {
@@ -382,9 +388,9 @@ angular.module( 'Cimba', [
                             }
 
                             channel["owner"] = webid;
-
+                        
                             // add channel to the list
-                            $scope.channels.push(channel);                            
+                            $scope.channels[channel.uri] = channel;
 
                             /* uncomment to get posts for any channel (not just my own)
                             // get posts for that channel
@@ -504,7 +510,7 @@ angular.module( 'Cimba', [
 
         var f = $rdf.fetcher(g, TIMEOUT);
 
-        $scope.allPosts[channel] = [];
+        
 
         // add CORS proxy
         $rdf.Fetcher.crossSiteProxyTemplate=PROXY;
@@ -546,7 +552,6 @@ angular.module( 'Cimba', [
                         userpic = g.any(useraccount, SIOC('avatar')).value;
                     }
                     else {
-
                       userpic = 'assets/generic_photo.png';
                     }
 
@@ -561,7 +566,7 @@ angular.module( 'Cimba', [
 
                     if (g.any(uri, SIOC('content'))) {
                         body = g.any(uri, SIOC('content')).value;
-                        console.log("body: "); //debug
+                        // console.log("body: "); //debug
                     } else {
                         body = '';
                     }
@@ -586,27 +591,37 @@ angular.module( 'Cimba', [
                         $scope.posts = {};
                     }
 
-                    if (!$scope.allPosts[channel]) {
-                        $scope.allPosts[channel] =  [];
+                    if (!$scope.posts) {
+                        $scope.posts =  {};
                     }
                     
+                    if (!$scope.channels[channel]) {
+                        $scope.channels[channel] = {
+                            "posts": []
+                        };
+                    } else if (!$scope.channels[channel]["posts"]) {
+                        $scope.channels[channel]["posts"] = [];
+                    }
+
                     // filter post by language (only show posts in English or show all) 
                     //not implemented yet ^, currently a redundant if/else statement        
                     if ($scope.filterFlag && testIfAllEnglish(_newPost.body)) {
                         // add/overwrite post
-                        $scope.allPosts[channel].push(_newPost);
-                        $scope.posts.push(_newPost);
+                        $scope.posts[uri] = _newPost; 
+                        $scope.channels[channel].posts.push(_newPost);
                         $scope.$apply();
                     } else {
-                        $scope.allPosts[channel].push(_newPost);
-                        $scope.posts.push(_newPost);
+                        // $scope.allPosts[channel].push(_newPost);
+                        // $scope.posts.push(_newPost);
+                        $scope.posts[uri] = _newPost;                        
+                        $scope.channels[channel]["posts"].push(_newPost);
                         $scope.$apply();
                     }
 
                     $scope.users[$scope.userProfile.webid].gotposts = true;
                 }
             } else {
-                if (isEmpty($scope.allPosts || $scope.posts)) {
+                if (isEmpty($scope.posts)) {
                     $scope.users[$scope.userProfile.webid].gotposts = false;
                 }
             }
@@ -869,22 +884,16 @@ angular.module( 'Cimba', [
     //TODO (not functional yet)
     // remove all posts from viewer based on the given channel URI
     $scope.removePostsByChannel = function(ch) {
+
         var modified = false;
-        if ($scope.allPosts && !isEmpty($scope.allPosts)) {
-            for (var p in $scope.allPosts[ch]) {
-                delete $scope.allPosts[ch][p];
+        for (var p in $scope.posts) {
+            if (ch && $scope.posts[p].channel === ch) {
+                delete $scope.posts[p];
                 modified = true;
             }
         }
-        if ($scope.posts && !isEmpty($scope.posts)) {
-            for (var i in $scope.posts) {
-                var post = $scope.posts[i];
-                if (ch && ch == post.channel) {
-                    delete $scope.posts[i];
-                    modified = true;
-                }
-            }
-        }
+
+        $scope.channels[ch].posts = [];
     };
 
     // update the view with new posts
@@ -1013,7 +1022,7 @@ angular.module( 'Cimba', [
             // no logged user, we should be going to #login
             if ( next.templateUrl != "login/login.tpl.html" ) {
                 // not going to #login, we should redirect now
-                $location.path( "/login" );
+                
             }
         }
     });

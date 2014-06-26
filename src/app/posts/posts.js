@@ -133,15 +133,13 @@ angular.module('Cimba.posts',[
 				var postURI = r.getResponseHeader('Location');
 				if (postURI) {
 					_newPost.uri = postURI;
-					if (!$scope.allPosts) {
-						$scope.allPosts = {};
-					}
-					else if (!$scope.posts) {
-						$scope.posts = [];
+
+					if (!$scope.posts) {
+						$scope.posts = {};
 					}
 					// append post to the local list
-					$scope.allPosts[uri].push(_newPost);
-					$scope.posts.push(_newPost);
+					$scope.channels[uri].posts.push(_newPost);
+					$scope.posts[_newPost.uri] = _newPost;
 					$scope.users[webid].gotposts = true;
 
 					// set the corresponding acl
@@ -292,44 +290,51 @@ angular.module('Cimba.posts',[
 	};
 
 	//remove the post with the given post uri and channeluri
-	$scope.removePost = function(posturi,channeluri) {
+	$scope.removePost = function(posturi, channeluri) {
 		var modified = false;
-		if ($scope.allPosts && !isEmpty($scope.allPosts)) {
-			for (var p in $scope.allPosts[channeluri]) {
-				if (posturi && posturi == $scope.allPosts[channeluri][p].uri) {
-					delete $scope.allPosts[channeluri][p];
-					modified = true;
-				}
+		for (var p in $scope.channels[channeluri].posts) {
+			var post = $scope.channels[channeluri].posts[p];
+			if (posturi && post.uri == posturi) {
+				delete $scope.channels[channeluri].posts[p];
 			}
-		}
-		if ($scope.posts && !isEmpty($scope.posts)) {
-			for (var i in $scope.posts) {
-				if (posturi && posturi == $scope.posts[i].uri) {
-					delete $scope.posts[i];
-					modified = true;
-				}
-			}
-		}
-		if ($scope.posts && !isEmpty($scope.posts)) {
-			delete $scope.posts[posturi];
 			modified = true;
 		}
+
+		delete $scope.posts[posturi];
+		
 	};
 
 	// remove all posts from viewer based on the given WebID
 	$scope.removePostsByOwner = function(webid) {
 		var modified = false;
-		if ($scope.allPosts && !isEmpty($scope.allPosts)) {
-			for (var channel in $scope.allPosts) {
-				for (var p in channel) {
-					var post = $scope.channels[p];
-					if (webid && webid == post.userwebid) {
-						delete $scope.allPosts[channel][p];
-						modified = true;
-					}
+		if ($scope.posts && !isEmpty($scope.posts)) {
+			var channel = {};
+			for (var p in $scope.posts) {
+				var post = $scope.posts[p];
+				if (webid && post.userwebid === webid) {
+					delete $scope.posts[p];
+					channelId = post.channel;
+					for (var i in $scope.channels[post.channel].posts) {
+						var chpost = $scope.channels[post.channel].posts[i];
+						if (chpost.webid === webid) {
+							delete $scope.channels[post.channel].posts[i];
+						}
+					}					
 				}
 			}
 		}
+	};
+
+	// remove all posts from viewer based on the given channel URI
+	$scope.removePostsByChannel = function(ch) {
+		var modified = false;
+        for (var p in $scope.posts) {
+            if (ch && $scope.posts[p].channel === ch) {
+                delete $scope.posts[p];
+            }
+        }
+
+        $scope.channels[ch].posts = [];
 	};
 })
 
