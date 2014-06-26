@@ -126,7 +126,7 @@ angular.module('Cimba.posts',[
 				}
 			},
 			success: function(d,s,r) {
-				console.log('Success, new message was posted!');            
+				console.log('Success, new message was posted!');
 				// clear form
 				$scope.postbody = '';
 				// also display new post

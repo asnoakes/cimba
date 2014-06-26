@@ -850,7 +850,9 @@ angular.module( 'Cimba', [
                                 _channel.title = (g.any(ch, DCT('title')))?g.any(ch, DCT('title')).value:'Untitled';
                                 if (g.any(ch, SIOC('has_subscriber'))) {
                                 // subscribed
+                                    console.log("for channel uri: " + _channel.uri); //debug
                                     _channel.action = 'Unsubscribe';
+                                    console.log("channel action is " + _channel.action); //debug
                                     _channel.button = ch.button = 'fa-check-square-o';
                                     _channel.css = ch.css = 'btn-success';
                                     // also load the posts for this channel
@@ -858,7 +860,9 @@ angular.module( 'Cimba', [
                                         $scope.getPosts(_channel.uri, _channel.title);
                                     }
                                 } else {
+                                    console.log("for channel uri: " + _channel.uri); //debug
                                     _channel.action = ch.action = 'Subscribe';
+                                    console.log("channel action is " + _channel.action); //debug
                                     _channel.button = ch.button = 'fa-square-o';
                                     _channel.css = ch.css = 'btn-primary';
                                 }
